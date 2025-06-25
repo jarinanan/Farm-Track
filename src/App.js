@@ -36,7 +36,7 @@ const AppContent = () => {
 
     switch (currentPage) {
       case "home":
-        return <Home />;
+        return <Home setCurrentPage={setCurrentPage} />;
       case "products":
         return <Products setCurrentPage={setCurrentPage} />;
       case "dashboard":

@@ -30,9 +30,32 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import AddProduct from "../components/AddProduct";
+import ViewProduct from "../components/ViewProduct";
+import EditProduct from "../components/EditProduct";
 import Toast from "../components/Toast"
+import { Line, Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 
-
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 // Confirmation Modal Component
 const ConfirmationModal = ({
@@ -86,6 +109,9 @@ const Dashboard = ({ setCurrentPage }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showViewProduct, setShowViewProduct] = useState(false);
+  const [showEditProduct, setShowEditProduct] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState({
     isOpen: false,
@@ -101,6 +127,8 @@ const Dashboard = ({ setCurrentPage }) => {
     savedAmount: 0,
     favoriteProducts: 0,
   });
+  const [expandedOrder, setExpandedOrder] = useState(null);
+  const [expandedBuyerOrder, setExpandedBuyerOrder] = useState(null);
 
   // Toast functions
   const showToast = (message, type = "info") => {
@@ -279,10 +307,11 @@ const Dashboard = ({ setCurrentPage }) => {
         );
         unsubscribers.push(unsubscribeOrders);
 
-        // Load buyer's cart items
+        // Load buyer's cart items (only pending items)
         const cartQuery = query(
           collection(db, "cart"),
-          where("buyerId", "==", currentUser.uid)
+          where("buyerId", "==", currentUser.uid),
+          where("status", "==", "pending")
         );
 
         const unsubscribeCart = onSnapshot(
@@ -405,20 +434,104 @@ const Dashboard = ({ setCurrentPage }) => {
     setConfirmDelete({ isOpen: false, product: null });
   };
 
-  // Edit product (placeholder)
+  // Edit product functionality
   const handleEditProduct = (product) => {
-    showToast(
-      `Edit functionality for "${product.name}" will be implemented soon.`,
-      "info"
-    );
+    setSelectedProduct(product);
+    setShowEditProduct(true);
   };
 
   // View product details
   const handleViewProduct = (product) => {
-    showToast(
-      `View details for "${product.name}" will be implemented soon.`,
-      "info"
-    );
+    setSelectedProduct(product);
+    setShowViewProduct(true);
+  };
+
+  // Handle product updated
+  const handleProductUpdated = () => {
+    showToast("Product updated successfully!", "success");
+  };
+
+  // Helper: Get sales per month for last 6 months
+  const getSalesOverTime = () => {
+    const now = new Date();
+    const months = [];
+    const sales = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const label = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+      months.push(label);
+      // Sum revenue for orders in this month
+      const monthSales = orders
+        .filter(order => order.createdAt && order.createdAt.getMonth() === d.getMonth() && order.createdAt.getFullYear() === d.getFullYear())
+        .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      sales.push(monthSales);
+    }
+    return { months, sales };
+  };
+
+  // Helper: Get best-selling products
+  const getBestSellers = () => {
+    const productMap = {};
+    orders.forEach(order => {
+      order.items?.forEach(item => {
+        if (!productMap[item.productName]) {
+          productMap[item.productName] = 0;
+        }
+        productMap[item.productName] += item.quantity;
+      });
+    });
+    // Sort by quantity sold
+    const sorted = Object.entries(productMap).sort((a, b) => b[1] - a[1]);
+    const top = sorted.slice(0, 5);
+    return {
+      labels: top.map(([name]) => name),
+      data: top.map(([, qty]) => qty),
+    };
+  };
+
+  // Helper: Get buyer spending over time
+  const getBuyerSpendingOverTime = () => {
+    const now = new Date();
+    const months = [];
+    const spending = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const label = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+      months.push(label);
+      // Sum spending for orders in this month
+      const monthSpending = orders
+        .filter(order => order.createdAt && order.createdAt.getMonth() === d.getMonth() && order.createdAt.getFullYear() === d.getFullYear())
+        .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      spending.push(monthSpending);
+    }
+    return { months, spending };
+  };
+
+  // Helper: Get buyer's favorite categories
+  const getBuyerFavoriteCategories = () => {
+    const categoryMap = {};
+    orders.forEach(order => {
+      order.items?.forEach(item => {
+        // Try to get category from product name or use a default
+        const category = item.productName?.toLowerCase().includes('vegetable') ? 'vegetables' :
+                        item.productName?.toLowerCase().includes('fruit') ? 'fruits' :
+                        item.productName?.toLowerCase().includes('grain') ? 'grains' :
+                        item.productName?.toLowerCase().includes('dairy') ? 'dairy' :
+                        item.productName?.toLowerCase().includes('meat') ? 'meat' :
+                        'other';
+        
+        if (!categoryMap[category]) {
+          categoryMap[category] = 0;
+        }
+        categoryMap[category] += item.quantity;
+      });
+    });
+    // Sort by quantity
+    const sorted = Object.entries(categoryMap).sort((a, b) => b[1] - a[1]);
+    return {
+      labels: sorted.map(([category]) => category.charAt(0).toUpperCase() + category.slice(1)),
+      data: sorted.map(([, qty]) => qty),
+    };
   };
 
   if (loading) {
@@ -543,9 +656,7 @@ const Dashboard = ({ setCurrentPage }) => {
                   <th className="px-8 py-4 text-left text-xs font-semibold text-gray-500 uppercase">
                     Date
                   </th>
-                  <th className="px-8 py-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Actions
-                  </th>
+                  
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -593,11 +704,7 @@ const Dashboard = ({ setCurrentPage }) => {
                           : "N/A"}
                       </div>
                     </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <button className="text-blue-600 hover:text-blue-900 text-sm font-medium">
-                        View Details
-                      </button>
-                    </td>
+                    
                   </tr>
                 ))}
               </tbody>
@@ -848,9 +955,7 @@ const Dashboard = ({ setCurrentPage }) => {
                   <th className="px-8 py-4 text-left text-xs font-semibold text-gray-500 uppercase">
                     Date
                   </th>
-                  <th className="px-8 py-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Actions
-                  </th>
+                  
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -898,11 +1003,7 @@ const Dashboard = ({ setCurrentPage }) => {
                           : "N/A"}
                       </div>
                     </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <button className="text-blue-600 hover:text-blue-900 text-sm font-medium">
-                        View Details
-                      </button>
-                    </td>
+                    
                   </tr>
                 ))}
               </tbody>
@@ -912,11 +1013,8 @@ const Dashboard = ({ setCurrentPage }) => {
           <div className="p-12 text-center">
             <ShoppingCart className="w-24 h-24 text-gray-400 mx-auto mb-6" />
             <h3 className="text-2xl font-bold text-gray-600 mb-4">
-              No Orders Yet
-            </h3>
-            <p className="text-gray-500 text-lg mb-6">
               Start shopping for fresh products from local farmers.
-            </p>
+            </h3>
             <button
               onClick={() => setCurrentPage("products")}
               className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 shadow-lg"
@@ -928,7 +1026,7 @@ const Dashboard = ({ setCurrentPage }) => {
       </div>
 
       {/* Cart Items */}
-      {cartItems.length > 0 && (
+      {cartItems.length > 0 ? (
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
           <div className="p-8 border-b border-gray-200">
             <div className="flex items-center justify-between">
@@ -965,8 +1063,28 @@ const Dashboard = ({ setCurrentPage }) => {
                   </div>
                 </div>
               ))}
+              {cartItems.length > 3 && (
+                <div className="text-center pt-4">
+                  <p className="text-sm text-gray-500">
+                    And {cartItems.length - 3} more items in your cart
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+        </div>
+      ) : (
+        /* Empty Cart Message */
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+          <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-gray-600 mb-2">Your cart is empty</h3>
+          <p className="text-gray-500 mb-6">Start shopping for fresh products from local farmers!</p>
+          <button
+            onClick={() => setCurrentPage("products")}
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-all"
+          >
+            Browse Products
+          </button>
         </div>
       )}
     </div>
@@ -1161,56 +1279,147 @@ const Dashboard = ({ setCurrentPage }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">
-                        {order.id.slice(-8).toUpperCase()}
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {order.farmerEmail || "Unknown Farmer"}
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {order.items?.length || 0} items
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        ৳{order.totalAmount || 0}
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
-                          order.status === "delivered"
-                            ? "bg-green-100 text-green-800"
-                            : order.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : order.status === "processing"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {order.status || "pending"}
-                      </span>
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {order.createdAt
-                          ? order.createdAt.toLocaleDateString()
-                          : "N/A"}
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      <button className="text-blue-600 hover:text-blue-900 text-sm font-medium">
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
+                {orders.map((order, idx) => (
+                  <React.Fragment key={order.id}>
+                    <tr className="hover:bg-gray-50 transition-colors">
+                      <td className="px-8 py-6 whitespace-nowrap">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {order.id.slice(-8).toUpperCase()}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {order.farmerEmail || "Unknown Farmer"}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {order.items?.length || 0} items
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          ৳{order.totalAmount || 0}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 whitespace-nowrap">
+                        <span
+                          className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                            order.status === "delivered"
+                              ? "bg-green-100 text-green-800"
+                              : order.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : order.status === "processing"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {order.status || "pending"}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {order.createdAt
+                            ? order.createdAt.toLocaleDateString()
+                            : "N/A"}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 whitespace-nowrap">
+                        <button
+                          className="text-blue-600 hover:text-blue-900 text-sm font-medium mr-2"
+                          onClick={() => setExpandedBuyerOrder(expandedBuyerOrder === idx ? null : idx)}
+                        >
+                          {expandedBuyerOrder === idx ? "Hide" : "View"} Details
+                        </button>
+                      </td>
+                    </tr>
+                    {expandedBuyerOrder === idx && (
+                      <tr>
+                        <td colSpan={7} className="bg-gray-50 px-8 py-6">
+                          <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                              <h4 className="font-semibold mb-4 text-gray-800">Order Details</h4>
+                              <div className="space-y-3">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">Order ID:</span>
+                                  <span className="font-mono text-gray-800">{order.id}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">Order Date:</span>
+                                  <span className="text-gray-800">
+                                    {order.createdAt ? order.createdAt.toLocaleDateString() : "N/A"}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">Total Amount:</span>
+                                  <span className="font-semibold text-gray-800">৳{order.totalAmount || 0}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">Status:</span>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                    order.status === "delivered"
+                                      ? "bg-green-100 text-green-800"
+                                      : order.status === "pending"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : order.status === "processing"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  }`}>
+                                    {order.status || "pending"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold mb-4 text-gray-800">Products</h4>
+                              <div className="space-y-2">
+                                {order.items?.map((item, i) => (
+                                  <div key={i} className="flex justify-between items-center p-3 bg-white rounded-lg">
+                                    <div>
+                                      <p className="font-medium text-gray-800">{item.productName}</p>
+                                      <p className="text-sm text-gray-500">
+                                        {item.quantity} {item.productUnit} × ৳{item.productPrice}
+                                      </p>
+                                    </div>
+                                    <p className="font-semibold text-gray-800">৳{item.totalPrice}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          {order.deliveryInfo && (
+                            <div className="mt-6 pt-6 border-t border-gray-200">
+                              <h4 className="font-semibold mb-4 text-gray-800">Delivery Information</h4>
+                              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="text-gray-600">Name:</span>
+                                  <span className="ml-2 text-gray-800">{order.deliveryInfo.fullName}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">Phone:</span>
+                                  <span className="ml-2 text-gray-800">{order.deliveryInfo.phone}</span>
+                                </div>
+                                <div className="md:col-span-2">
+                                  <span className="text-gray-600">Address:</span>
+                                  <span className="ml-2 text-gray-800">{order.deliveryInfo.address}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">City:</span>
+                                  <span className="ml-2 text-gray-800">{order.deliveryInfo.city}</span>
+                                </div>
+                                {order.deliveryInfo.notes && (
+                                  <div className="md:col-span-2">
+                                    <span className="text-gray-600">Notes:</span>
+                                    <span className="ml-2 text-gray-800">{order.deliveryInfo.notes}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -1237,58 +1446,154 @@ const Dashboard = ({ setCurrentPage }) => {
   );
 
   // Render analytics
-  const renderAnalytics = () => (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Sales Chart */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-          <h3 className="text-xl font-bold text-gray-800 mb-6">Sales Overview</h3>
-          <div className="h-64 bg-gray-50 rounded-xl flex items-center justify-center">
-            <p className="text-gray-500">Sales chart will be implemented here</p>
+  const renderAnalytics = () => {
+    if (userType === "farmer") {
+      const { months, sales } = getSalesOverTime();
+      const bestSellers = getBestSellers();
+      return (
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Sales Over Time Chart */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+              <h3 className="text-xl font-bold text-gray-800 mb-6">Sales Over Time (Last 6 Months)</h3>
+              <div className="h-64">
+                <Line
+                  data={{
+                    labels: months,
+                    datasets: [
+                      {
+                        label: 'Revenue (৳)',
+                        data: sales,
+                        borderColor: '#16a34a',
+                        backgroundColor: 'rgba(22,163,74,0.1)',
+                        tension: 0.4,
+                        fill: true,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                      title: { display: false },
+                    },
+                    scales: {
+                      y: { beginAtZero: true },
+                    },
+                  }}
+                />
+              </div>
+            </div>
+            {/* Best Sellers Chart */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+              <h3 className="text-xl font-bold text-gray-800 mb-6">Best-Selling Products</h3>
+              <div className="h-64">
+                {bestSellers.labels.length > 0 ? (
+                  <Bar
+                    data={{
+                      labels: bestSellers.labels,
+                      datasets: [
+                        {
+                          label: 'Units Sold',
+                          data: bestSellers.data,
+                          backgroundColor: '#fbbf24',
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: { display: false },
+                        title: { display: false },
+                      },
+                      scales: {
+                        y: { beginAtZero: true },
+                      },
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">No sales data yet</div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Revenue Chart */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-          <h3 className="text-xl font-bold text-gray-800 mb-6">Revenue Trends</h3>
-          <div className="h-64 bg-gray-50 rounded-xl flex items-center justify-center">
-            <p className="text-gray-500">Revenue chart will be implemented here</p>
+      );
+    } else {
+      // Buyer analytics
+      const { months, spending } = getBuyerSpendingOverTime();
+      const favoriteCategories = getBuyerFavoriteCategories();
+      return (
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Buyer Spending Over Time Chart */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+              <h3 className="text-xl font-bold text-gray-800 mb-6">Spending Over Time (Last 6 Months)</h3>
+              <div className="h-64">
+                <Line
+                  data={{
+                    labels: months,
+                    datasets: [
+                      {
+                        label: 'Spending (৳)',
+                        data: spending,
+                        borderColor: '#16a34a',
+                        backgroundColor: 'rgba(22,163,74,0.1)',
+                        tension: 0.4,
+                        fill: true,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                      title: { display: false },
+                    },
+                    scales: {
+                      y: { beginAtZero: true },
+                    },
+                  }}
+                />
+              </div>
+            </div>
+            {/* Buyer Favorite Categories Chart */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+              <h3 className="text-xl font-bold text-gray-800 mb-6">Favorite Categories</h3>
+              <div className="h-64">
+                {favoriteCategories.labels.length > 0 ? (
+                  <Bar
+                    data={{
+                      labels: favoriteCategories.labels,
+                      datasets: [
+                        {
+                          label: 'Units Purchased',
+                          data: favoriteCategories.data,
+                          backgroundColor: '#fbbf24',
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: { display: false },
+                        title: { display: false },
+                      },
+                      scales: {
+                        y: { beginAtZero: true },
+                      },
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">No spending data yet</div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Performance Metrics */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-        <h3 className="text-xl font-bold text-gray-800 mb-6">Performance Metrics</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center p-6 bg-gray-50 rounded-xl">
-            <div className="text-3xl font-bold text-green-600 mb-2">
-              {userType === "farmer" ? stats.totalProducts : stats.totalOrders}
-            </div>
-            <div className="text-gray-600">
-              {userType === "farmer" ? "Total Products" : "Total Orders"}
-            </div>
-          </div>
-          <div className="text-center p-6 bg-gray-50 rounded-xl">
-            <div className="text-3xl font-bold text-blue-600 mb-2">
-              {userType === "farmer" ? stats.totalOrders : stats.totalSpent}
-            </div>
-            <div className="text-gray-600">
-              {userType === "farmer" ? "Total Sold" : "Total Spent"}
-            </div>
-          </div>
-          <div className="text-center p-6 bg-gray-50 rounded-xl">
-            <div className="text-3xl font-bold text-yellow-600 mb-2">
-              {userType === "farmer" ? stats.totalRevenue : stats.savedAmount}
-            </div>
-            <div className="text-gray-600">
-              {userType === "farmer" ? "Total Revenue" : "Money Saved"}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+      );
+    }
+  };
 
   // Render settings
   const renderSettings = () => (
@@ -1430,23 +1735,165 @@ const Dashboard = ({ setCurrentPage }) => {
         {activeTab === "orders" && userType === "farmer" && (
           <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
             <h3 className="text-2xl font-bold text-gray-800 mb-6">Order Management</h3>
-            <p className="text-gray-600 text-lg">
-              Detailed order management functionality would go here...
-            </p>
+            {orders.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Order ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Buyer</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Products</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Total</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {orders.map((order, idx) => (
+                      <React.Fragment key={order.id}>
+                        <tr className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap font-semibold">{order.id.slice(-8).toUpperCase()}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{order.buyerEmail || "Unknown Buyer"}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{order.items?.length || 0} items</td>
+                          <td className="px-6 py-4 whitespace-nowrap">৳{order.totalAmount || 0}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                              order.status === "delivered"
+                                ? "bg-green-100 text-green-800"
+                                : order.status === "pending"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : order.status === "processing"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}>
+                              {order.status || "pending"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {order.createdAt ? order.createdAt.toLocaleDateString() : "N/A"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <button
+                              className="text-blue-600 hover:text-blue-900 text-sm font-medium mr-2"
+                              onClick={() => setExpandedOrder(expandedOrder === idx ? null : idx)}
+                            >
+                              {expandedOrder === idx ? "Hide" : "View"} Details
+                            </button>
+                            <select
+                              className="ml-2 px-2 py-1 border rounded text-xs"
+                              value={order.status || "pending"}
+                              onChange={async (e) => {
+                                const newStatus = e.target.value;
+                                await updateDoc(doc(db, "orders", order.id), { status: newStatus });
+                                showToast(`Order status updated to ${newStatus}`, "success");
+                              }}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="processing">Processing</option>
+                              <option value="delivered">Delivered</option>
+                            </select>
+                          </td>
+                        </tr>
+                        {expandedOrder === idx && (
+                          <tr>
+                            <td colSpan={7} className="bg-gray-50 px-6 py-4">
+                              <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                  <h4 className="font-semibold mb-2">Products</h4>
+                                  <ul className="list-disc pl-5 text-sm text-gray-700">
+                                    {order.items?.map((item, i) => (
+                                      <li key={i}>
+                                        {item.productName} — {item.quantity} {item.productUnit} @ ৳{item.productPrice} each
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold mb-2">Buyer Info</h4>
+                                  <div className="text-sm text-gray-700">
+                                    <div>Email: {order.buyerEmail}</div>
+                                    {order.deliveryInfo && (
+                                      <div>Address: {order.deliveryInfo.address}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-12 text-center">
+                <ShoppingCart className="w-24 h-24 text-gray-400 mx-auto mb-6" />
+                <h3 className="text-2xl font-bold text-gray-600 mb-4">No Orders Yet</h3>
+                <p className="text-gray-500 text-lg mb-6">Orders from buyers will appear here.</p>
+              </div>
+            )}
           </div>
         )}
+
         {activeTab === "orders" && userType === "buyer" && (
-          <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">Shopping Cart</h3>
-            <p className="text-gray-600 text-lg mb-6">
-              Your cart items and checkout functionality.
-            </p>
-            <button
-              onClick={() => setCurrentPage("cart")}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-all"
-            >
-              View Cart
-            </button>
+          <div className="space-y-8">
+            {/* Cart Items */}
+            {cartItems.length > 0 ? (
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
+                <div className="p-8 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-2xl font-bold text-gray-800">Cart Items</h3>
+                    <button
+                      onClick={() => setCurrentPage("cart")}
+                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-all"
+                    >
+                      View Cart
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-8">
+                  <div className="space-y-4">
+                    {cartItems.map((item) => (
+                      <div key={item.id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0">
+                          {item.productImage && (
+                            <img
+                              src={item.productImage}
+                              alt={item.productName}
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-800">{item.productName}</h4>
+                          <p className="text-sm text-gray-500">{item.farmerEmail}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-800">৳{item.totalPrice}</p>
+                          <p className="text-sm text-gray-500">{item.quantity} {item.productUnit}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Empty Cart Message */
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+                <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-600 mb-2">Your cart is empty</h3>
+                <p className="text-gray-500 mb-6">Start shopping for fresh products from local farmers!</p>
+                <button
+                  onClick={() => setCurrentPage("products")}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-all"
+                >
+                  Browse Products
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1474,6 +1921,25 @@ const Dashboard = ({ setCurrentPage }) => {
             setShowAddProduct(false);
             showToast("Product added successfully!", "success");
           }}
+        />
+      )}
+
+      {/* View Product Modal */}
+      {showViewProduct && userType === "farmer" && (
+        <ViewProduct
+          isOpen={showViewProduct}
+          onClose={() => setShowViewProduct(false)}
+          product={selectedProduct}
+        />
+      )}
+
+      {/* Edit Product Modal */}
+      {showEditProduct && userType === "farmer" && (
+        <EditProduct
+          isOpen={showEditProduct}
+          onClose={() => setShowEditProduct(false)}
+          product={selectedProduct}
+          onProductUpdated={handleProductUpdated}
         />
       )}
 

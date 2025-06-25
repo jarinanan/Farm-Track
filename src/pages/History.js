@@ -67,7 +67,7 @@ const Toast = ({ message, type, onClose }) => {
   );
 };
 
-const History = () => {
+const History = ({ setCurrentPage }) => {
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -182,17 +182,6 @@ const History = () => {
           </div>
         </div>
 
-        {/* Wave Shape */}
-        <div className="relative z-10">
-          <svg 
-            className="w-full h-16 text-gray-50 transform rotate-180" 
-            fill="currentColor" 
-            viewBox="0 0 1440 100" 
-            preserveAspectRatio="none"
-          >
-            <path d="M0,100 C360,0 720,0 1440,100 L1440,100 L0,100 Z" />
-          </svg>
-        </div>
       </div>
 
       {/* Main Content */}
@@ -211,10 +200,10 @@ const History = () => {
           {/* Timeline */}
           <div className="relative mb-20">
             {/* Timeline Line */}
-            <div className="absolute left-1/2 transform -translate-x-px h-full w-0.5 bg-green-300"></div>
+            <div className="absolute left-1/2 transform -translate-x-px h-full w-1 bg-gradient-to-b from-green-400 to-green-600"></div>
 
             {/* Timeline Items */}
-            <div className="space-y-12">
+            <div className="space-y-8">
               {timelineData.map((item, index) => (
                 <div 
                   key={index} 
@@ -223,21 +212,44 @@ const History = () => {
                   }`}
                 >
                   {/* Timeline Content */}
-                  <div className={`w-5/12 ${item.position === 'right' ? 'text-right' : 'text-left'}`}>
-                    <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
-                      <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold mb-3">
-                        {item.year}
-                      </span>
+                  <div className={`w-5/12 ${item.position === 'right' ? 'text-right pr-8' : 'text-left pl-8'}`}>
+                    <div className="bg-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-gray-100">
+                      <div className="flex items-center mb-3">
+                        <span className="inline-block bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                          {item.year}
+                        </span>
+                        {item.position === 'left' && (
+                          <div className="ml-3 w-6 h-0.5 bg-gradient-to-r from-green-400 to-transparent"></div>
+                        )}
+                        {item.position === 'right' && (
+                          <div className="mr-3 w-6 h-0.5 bg-gradient-to-l from-green-400 to-transparent"></div>
+                        )}
+                      </div>
                       <h3 className="text-xl font-bold text-gray-800 mb-3">{item.title}</h3>
-                      <p className="text-gray-600 leading-relaxed">{item.description}</p>
+                      <p className="text-gray-600 leading-relaxed text-sm">{item.description}</p>
+                      
+                      {/* Decorative elements */}
+                      <div className={`absolute top-3 ${item.position === 'left' ? 'right-3' : 'left-3'} opacity-10`}>
+                        <div className="w-8 h-8 bg-green-200 rounded-full"></div>
+                      </div>
                     </div>
                   </div>
 
                   {/* Timeline Dot */}
-                  <div className="absolute left-1/2 transform -translate-x-1/2 w-4 h-4 bg-green-600 rounded-full border-4 border-white shadow-lg z-10"></div>
+                  <div className="absolute left-1/2 transform -translate-x-1/2 w-5 h-5 bg-gradient-to-r from-green-500 to-green-600 rounded-full border-3 border-white shadow-xl z-10 flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                  </div>
+
+                  {/* Connecting Line */}
+                  <div className={`absolute top-1/2 transform -translate-y-1/2 w-6 h-0.5 bg-gradient-to-r ${
+                    item.position === 'left' ? 'left-1/2 from-green-400 to-transparent' : 'right-1/2 from-transparent to-green-400'
+                  }`}></div>
                 </div>
               ))}
             </div>
+
+            {/* Timeline End Cap */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 bottom-0 w-3 h-3 bg-green-600 rounded-full border-3 border-white shadow-lg z-10"></div>
           </div>
 
           {/* Milestone Statistics */}
@@ -264,7 +276,7 @@ const History = () => {
                 ever-evolving agricultural landscape.
               </p>
               <button
-                onClick={() => window.location.href = '/about'}
+                onClick={() => setCurrentPage("about")}
                 className="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
                 Learn More About Us
@@ -274,135 +286,6 @@ const History = () => {
         </div>
       </div>
 
-      {/* Contact Section */}
-      <section className="bg-gray-800 text-white py-16">
-        <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-4xl font-bold text-center mb-12">Contact Us</h2>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
-            <div className="bg-gray-700 rounded-lg p-8">
-              <h3 className="text-2xl font-bold mb-6">Send us a message</h3>
-              <form onSubmit={handleContactSubmit} className="space-y-6">
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Your Name"
-                    value={contactForm.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-600 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-white placeholder-gray-300"
-                    required
-                  />
-                </div>
-                <div>
-                  <input
-                    type="email"
-                    placeholder="Your Email"
-                    value={contactForm.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-600 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-white placeholder-gray-300"
-                    required
-                  />
-                </div>
-                <div>
-                  <textarea
-                    placeholder="Your Message"
-                    rows={4}
-                    value={contactForm.message}
-                    onChange={(e) => handleInputChange('message', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-600 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-white placeholder-gray-300 resize-none"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Send className="w-5 h-5" />
-                  <span>Send Message</span>
-                </button>
-              </form>
-            </div>
-
-            {/* Contact Info */}
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-2xl font-bold mb-6">Get in Touch</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <MapPin className="w-6 h-6 text-green-400" />
-                    <p>123 Agriculture Road, Dhaka, Bangladesh</p>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <Phone className="w-6 h-6 text-green-400" />
-                    <p>+880 1234 567890</p>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <Mail className="w-6 h-6 text-green-400" />
-                    <p>info@farmconnect.com</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Social Media */}
-              <div>
-                <h4 className="text-xl font-bold mb-4">Follow Us</h4>
-                <div className="flex space-x-4">
-                  <a href="#" className="bg-blue-600 hover:bg-blue-700 p-3 rounded-full transition-colors">
-                    <Facebook className="w-6 h-6" />
-                  </a>
-                  <a href="#" className="bg-blue-400 hover:bg-blue-500 p-3 rounded-full transition-colors">
-                    <Twitter className="w-6 h-6" />
-                  </a>
-                  <a href="#" className="bg-pink-500 hover:bg-pink-600 p-3 rounded-full transition-colors">
-                    <Instagram className="w-6 h-6" />
-                  </a>
-                  <a href="#" className="bg-blue-700 hover:bg-blue-800 p-3 rounded-full transition-colors">
-                    <Linkedin className="w-6 h-6" />
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <p>&copy; 2025 FarmConnect. All Rights Reserved.</p>
-        </div>
-      </footer>
-
-      {/* Toast Notifications */}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map((toast) => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            onClose={() => removeToast(toast.id)}
-          />
-        ))}
-      </div>
-
-      {/* Styles */}
-      <style jsx>{`
-        @keyframes slide-in {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-        
-        .animate-slide-in {
-          animation: slide-in 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 };

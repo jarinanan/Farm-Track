@@ -1,7 +1,7 @@
 // pages/Home.js
 import React, { useState, useEffect } from "react";
 
-const Home = () => {
+const Home = ({ setCurrentPage }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Background images for slideshow using actual images from public folder
@@ -27,13 +27,13 @@ const Home = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <div className="relative h-screen overflow-hidden">
+      <div className="relative h-[60vh] min-h-[400px] overflow-hidden">
         {/* Background Slideshow */}
         <div className="absolute inset-0">
           {backgroundImages.map((image, index) => (
             <div
               key={index}
-              className={`absolute inset-0 transition-opacity duration-2000 ${
+              className={`absolute inset-0 transition-opacity duration-1500 ${
                 index === currentImageIndex ? "opacity-100" : "opacity-0"
               }`}
               style={{
@@ -56,10 +56,10 @@ const Home = () => {
 
         {/* Hero Content */}
         <div className="relative z-10 flex items-center justify-center h-full">
-          <div className="text-center text-white px-4 max-w-6xl mx-auto">
+          <div className="text-center text-white px-2 max-w-2xl mx-auto">
             {/* Main Slogan with enhanced styling */}
-            <div className="mb-8">
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight text-reveal">
+            <div className="mb-4">
+              <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-3 leading-tight text-reveal">
                 <span className="block text-yellow-400 drop-shadow-2xl hero-text-shadow stagger-1">Fair Prices.</span>
                 <span className="block text-white drop-shadow-2xl hero-text-shadow stagger-2">Direct Connections.</span>
                 <span className="block text-green-300 drop-shadow-2xl hero-text-shadow stagger-3">Honest Trade</span>
@@ -67,68 +67,55 @@ const Home = () => {
             </div>
 
             {/* Brand Name with enhanced styling */}
-            <div className="mb-8">
-              <h2 className="text-3xl md:text-5xl font-bold text-yellow-400 mb-4 drop-shadow-xl animate-bounce-slow hero-text-glow stagger-4">
+            <div className="mb-4">
+              <h2 className="text-xl md:text-2xl font-bold text-yellow-400 mb-2 drop-shadow-xl animate-bounce-slow hero-text-glow stagger-4">
                 FarmTrack
               </h2>
-              <p className="text-xl md:text-2xl text-green-100 font-medium drop-shadow-lg stagger-5">
+              <p className="text-base md:text-lg text-green-100 font-medium drop-shadow-lg stagger-5">
                 Bangladesh Agri Products
               </p>
             </div>
 
             {/* Call to Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-              <button className="hero-button bg-yellow-600 hover:bg-yellow-500 text-white px-10 py-4 rounded-xl text-xl font-bold transition-all transform hover:scale-105 shadow-2xl hover:shadow-yellow-500/25 animate-pulse">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-4">
+              <button
+                className="hero-button bg-yellow-600 hover:bg-yellow-500 text-white px-6 py-2 rounded-xl text-base font-bold transition-all transform hover:scale-105 shadow-2xl hover:shadow-yellow-500/25 animate-pulse"
+                onClick={() => setCurrentPage && setCurrentPage("products")}
+              >
                 Get Started
               </button>
-              <button className="hero-button bg-transparent border-2 border-white hover:bg-white hover:text-green-800 text-white px-10 py-4 rounded-xl text-xl font-bold transition-all transform hover:scale-105 shadow-2xl">
+              <button
+                className="hero-button bg-transparent border-2 border-white hover:bg-white hover:text-green-800 text-white px-6 py-2 rounded-xl text-base font-bold transition-all transform hover:scale-105 shadow-2xl"
+                onClick={() => {
+                  const aimSection = document.getElementById("our-aim");
+                  if (aimSection) {
+                    aimSection.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
+              >
                 Learn More
               </button>
             </div>
 
             {/* Stats Preview */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-md mx-auto">
               <div className="text-center animate-fade-in-up stagger-1">
-                <div className="text-2xl md:text-3xl font-bold text-yellow-400 mb-1">1,500+</div>
-                <div className="text-sm md:text-base text-green-100">Farmers</div>
+                <div className="text-lg md:text-xl font-bold text-yellow-400 mb-1">1,500+</div>
+                <div className="text-xs md:text-sm text-green-100">Farmers</div>
               </div>
               <div className="text-center animate-fade-in-up stagger-2">
-                <div className="text-2xl md:text-3xl font-bold text-yellow-400 mb-1">15%</div>
-                <div className="text-sm md:text-base text-green-100">Waste Reduction</div>
+                <div className="text-lg md:text-xl font-bold text-yellow-400 mb-1">15%</div>
+                <div className="text-xs md:text-sm text-green-100">Waste Reduction</div>
               </div>
               <div className="text-center animate-fade-in-up stagger-3">
-                <div className="text-2xl md:text-3xl font-bold text-yellow-400 mb-1">50+</div>
-                <div className="text-sm md:text-base text-green-100">Markets</div>
+                <div className="text-lg md:text-xl font-bold text-yellow-400 mb-1">50+</div>
+                <div className="text-xs md:text-sm text-green-100">Markets</div>
               </div>
               <div className="text-center animate-fade-in-up stagger-4">
-                <div className="text-2xl md:text-3xl font-bold text-yellow-400 mb-1">24/7</div>
-                <div className="text-sm md:text-base text-green-100">Support</div>
+                <div className="text-lg md:text-xl font-bold text-yellow-400 mb-1">24/7</div>
+                <div className="text-xs md:text-sm text-green-100">Support</div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Slideshow Indicators */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
-          <div className="flex space-x-3">
-            {backgroundImages.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentImageIndex(index)}
-                className={`slideshow-indicator w-3 h-3 rounded-full transition-all ${
-                  index === currentImageIndex
-                    ? "bg-yellow-400 w-8"
-                    : "bg-white/50 hover:bg-white/75"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 scroll-indicator">
-          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-white rounded-full mt-2 animate-pulse"></div>
           </div>
         </div>
 
@@ -151,7 +138,7 @@ const Home = () => {
       {/* Main Content */}
       <div className="bg-white">
         {/* Aim Section */}
-        <div className="py-16 px-4">
+        <div id="our-aim" className="py-16 px-4">
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               {/* Video */}

@@ -1,5 +1,5 @@
-// components/AddProduct.js
-import React, { useState } from "react";
+// components/EditProduct.js
+import React, { useState, useEffect } from "react";
 import {
   X,
   Upload,
@@ -8,14 +8,15 @@ import {
   FileText,
   MapPin,
   Tag,
+  Loader,
 } from "lucide-react";
-import { collection, addDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
 import Toast from "./Toast";
 
-const AddProduct = ({ isOpen, onClose, onProductAdded }) => {
+const EditProduct = ({ product, isOpen, onClose, onProductUpdated }) => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -67,6 +68,26 @@ const AddProduct = ({ isOpen, onClose, onProductAdded }) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
+  // Initialize form data when product changes
+  useEffect(() => {
+    if (product) {
+      setFormData({
+        name: product.name || "",
+        description: product.description || "",
+        price: product.price?.toString() || "",
+        unit: product.unit || "kg",
+        quantity: product.quantity?.toString() || "",
+        category: product.category || "vegetables",
+        location: product.location || "",
+        harvestDate: product.harvestDate || "",
+        expiryDate: product.expiryDate || "",
+        organic: product.organic || false,
+        image: null,
+      });
+      setImagePreview(product.imageUrl || null);
+    }
+  }, [product]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -110,14 +131,14 @@ const AddProduct = ({ isOpen, onClose, onProductAdded }) => {
     setLoading(true);
 
     try {
-      // Upload image first if provided
-      let imageUrl = null;
+      // Upload new image if provided
+      let imageUrl = product.imageUrl; // Keep existing image by default
       if (formData.image) {
         imageUrl = await uploadImage(formData.image);
       }
 
-      // Prepare product data
-      const productData = {
+      // Prepare updated product data
+      const updatedProductData = {
         name: formData.name,
         description: formData.description,
         price: parseFloat(formData.price),
@@ -129,56 +150,30 @@ const AddProduct = ({ isOpen, onClose, onProductAdded }) => {
         expiryDate: formData.expiryDate,
         organic: formData.organic,
         imageUrl: imageUrl,
-        farmerId: currentUser.uid,
-        farmerEmail: currentUser.email,
-        createdAt: new Date(),
         updatedAt: new Date(),
-        status: "active",
-        sold: 0,
-        views: 0,
-        rating: 0,
-        reviews: [],
       };
 
-      // Add to Firestore
-      const docRef = await addDoc(collection(db, "products"), productData);
+      // Update in Firestore
+      await updateDoc(doc(db, "products", product.id), updatedProductData);
 
-      console.log("Product added with ID:", docRef.id);
-
-      // Reset form
-      setFormData({
-        name: "",
-        description: "",
-        price: "",
-        unit: "kg",
-        quantity: "",
-        category: "vegetables",
-        location: "",
-        harvestDate: "",
-        expiryDate: "",
-        organic: false,
-        image: null,
-      });
-      setImagePreview(null);
+      console.log("Product updated successfully");
 
       // Notify parent component
-      if (onProductAdded) {
-        onProductAdded();
+      if (onProductUpdated) {
+        onProductUpdated();
       }
 
       // Close modal
       onClose();
-
-      showToast("Product added successfully!", "success");
     } catch (error) {
-      console.error("Error adding product:", error);
-      showToast("Failed to add product. Please try again.", "error");
+      console.error("Error updating product:", error);
+      showToast("Failed to update product. Please try again.", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !product) return null;
 
   return (
     <>
@@ -187,7 +182,7 @@ const AddProduct = ({ isOpen, onClose, onProductAdded }) => {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-800">
-              Add New Product
+              Edit Product: {product.name}
             </h2>
             <button
               onClick={onClose}
@@ -451,9 +446,10 @@ const AddProduct = ({ isOpen, onClose, onProductAdded }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white rounded-lg font-medium"
+                className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white rounded-lg font-medium flex items-center space-x-2"
               >
-                {loading ? "Adding Product..." : "Add Product"}
+                {loading && <Loader className="w-4 h-4 animate-spin" />}
+                <span>{loading ? "Updating..." : "Update Product"}</span>
               </button>
             </div>
           </form>
@@ -475,4 +471,4 @@ const AddProduct = ({ isOpen, onClose, onProductAdded }) => {
   );
 };
 
-export default AddProduct;
+export default EditProduct; 

@@ -548,13 +548,10 @@ const Cart = ({ setCurrentPage }) => {
             updatedAt: serverTimestamp(),
           });
 
-          // Update cart items status to "ordered"
+          // Delete cart items instead of updating status
           orderData.items.forEach((item) => {
             const cartItemRef = doc(db, "cart", item.id);
-            transaction.update(cartItemRef, {
-              status: "ordered",
-              orderedAt: serverTimestamp(),
-            });
+            transaction.delete(cartItemRef);
           });
 
           // Update product sold quantities
@@ -578,7 +575,7 @@ const Cart = ({ setCurrentPage }) => {
       );
       setShowCheckout(false);
 
-      // Redirect to orders page after 2 seconds
+      // Redirect to dashboard after 2 seconds
       setTimeout(() => {
         setCurrentPage("dashboard");
       }, 2000);
@@ -610,7 +607,7 @@ const Cart = ({ setCurrentPage }) => {
         <div className="mb-8">
           <div className="flex items-center space-x-6 mb-6">
             <button
-              onClick={() => window.history.back()}
+              onClick={() => setCurrentPage("products")}
               className="p-3 text-gray-600 hover:text-gray-800 hover:bg-white rounded-xl transition-all shadow-sm"
             >
               <ArrowLeft className="w-6 h-6" />

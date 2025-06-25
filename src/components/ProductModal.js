@@ -221,12 +221,6 @@ const ProductModal = ({ product, isOpen, onClose, onAddToCart }) => {
                   </div>
                 </div>
 
-                {/* Additional images could go here */}
-                <div className="flex space-x-2">
-                  <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
-                  <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
-                  <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
-                </div>
               </div>
 
               {/* Product Info */}

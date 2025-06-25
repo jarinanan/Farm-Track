@@ -11,7 +11,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
-const AboutUs = () => {
+const AboutUs = ({ setCurrentPage }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -46,18 +46,7 @@ const AboutUs = () => {
             </p>
           </div>
         </div>
-
-        {/* Wave Shape */}
-        <div className="relative z-10">
-          <svg 
-            className="w-full h-16 text-gray-50 transform rotate-180" 
-            fill="currentColor" 
-            viewBox="0 0 1440 100" 
-            preserveAspectRatio="none"
-          >
-            <path d="M0,100 C360,0 720,0 1440,100 L1440,100 L0,100 Z" />
-          </svg>
-        </div>
+        
       </div>
 
       {/* About Section */}
@@ -249,13 +238,13 @@ const AboutUs = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => window.location.href = '/register'}
+                onClick={() => setCurrentPage("register")}
                 className="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
                 Get Started Today
               </button>
               <button
-                onClick={() => window.location.href = '/products'}
+                onClick={() => setCurrentPage("products")}
                 className="bg-green-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-800 transition-colors"
               >
                 Browse Products
@@ -265,12 +254,6 @@ const AboutUs = () => {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <p>&copy; 2025 FarmTrack. All Rights Reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 };
