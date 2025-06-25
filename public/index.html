@@ -1,43 +1,205 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#16a34a" />
+  <meta name="description"
+    content="FarmTrack - Direct farmer to buyer e-commerce platform. Fresh products, fair prices, honest trade." />
+  <meta name="keywords" content="agriculture, farmers, fresh produce, organic, Bangladesh, e-commerce, direct trade" />
+  <meta name="author" content="FarmTrack Team" />
+
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="FarmTrack - Direct Farmer to Buyer Platform" />
+  <meta property="og:description" content="Connect directly with farmers for fresh, organic produce at fair prices." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://farmtrack.com" />
+  <meta property="og:image" content="%PUBLIC_URL%/farmtrack-og-image.jpg" />
+
+  <!-- Twitter Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="FarmTrack - Direct Farmer to Buyer Platform" />
+  <meta name="twitter:description" content="Connect directly with farmers for fresh, organic produce at fair prices." />
+  <meta name="twitter:image" content="%PUBLIC_URL%/farmtrack-og-image.jpg" />
+
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome for icons (optional fallback) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <title>FarmTrack - Direct Farmer to Buyer Platform</title>
+
+  <!-- Structured Data for SEO -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "FarmTrack",
+      "description": "Direct farmer to buyer e-commerce platform for fresh agricultural products",
+      "url": "https://farmtrack.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://farmtrack.com/products?search={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+  <!-- PWA Support -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="FarmTrack">
+
+  <!-- Performance Optimization -->
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+  <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
+  <style>
+    /* Critical CSS for loading state */
+    .loading-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #16a34a 0%, #059669 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid #fbbf24;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+      color: white;
+      font-family: 'Inter', sans-serif;
+      font-size: 1.125rem;
+      font-weight: 500;
+      margin-top: 1rem;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Hide loading when app loads */
+    .app-loaded .loading-container {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <noscript>
+    <div style="padding: 2rem; text-align: center; font-family: Arial, sans-serif;">
+      <h1 style="color: #dc2626;">JavaScript Required</h1>
+      <p>You need to enable JavaScript to run this app. FarmTrack requires JavaScript for the best user experience.</p>
+      <p>Please enable JavaScript in your browser settings and reload this page.</p>
+    </div>
+  </noscript>
+
+  <!-- Loading screen -->
+  <div class="loading-container" id="loading-screen">
+    <div style="text-align: center;">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading FarmTrack...</div>
+    </div>
+  </div>
+
+  <!-- Main app container -->
+  <div id="root"></div>
+
+  <!-- Scripts -->
+  <script>
+    // Hide loading screen when app loads
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        document.body.classList.add('app-loaded');
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+          loadingScreen.style.opacity = '0';
+          loadingScreen.style.transition = 'opacity 0.3s ease-out';
+          setTimeout(() => {
+            loadingScreen.style.display = 'none';
+          }, 300);
+        }
+      }, 1000); // Show loading for at least 1 second
+    });
+
+    // Service Worker Registration for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function (registration) {
+            console.log('SW registered: ', registration);
+          })
+          .catch(function (registrationError) {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+
+    // Performance monitoring
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'page_load_time', {
+            event_category: 'Performance',
+            event_label: 'Initial Load',
+            value: Math.round(performance.now())
+          });
+        }
+      }, 0);
+    });
+
+    // Error handling
+    window.addEventListener('error', function (e) {
+      console.error('Global error:', e.error);
+      // You can send error reports to your logging service here
+    });
+
+    window.addEventListener('unhandledrejection', function (e) {
+      console.error('Unhandled promise rejection:', e.reason);
+      // You can send error reports to your logging service here
+    });
+  </script>
+
+  <!-- 
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
-
+      
       You can add webfonts, meta tags, or analytics to this file.
       The build step will place the bundled scripts into the <body> tag.
-
+      
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
-  </body>
+</body>
+
 </html>
