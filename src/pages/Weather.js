@@ -106,7 +106,7 @@ const Weather = ({ setCurrentPage }) => {
     try {
       // Using the WeatherAPI provided
       const response = await fetch(
-        `http://api.weatherapi.com/v1/forecast.json?key=f0b88da4235b4766bf0192427252805&q=${encodeURIComponent(city)}&days=7&aqi=yes`
+        `https://api.weatherapi.com/v1/forecast.json?key=f0b88da4235b4766bf0192427252805&q=${encodeURIComponent(city)}&days=7&aqi=yes`
       );
 
       if (!response.ok) {
